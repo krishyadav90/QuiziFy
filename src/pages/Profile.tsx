@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Award, Camera, Edit, Save, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Mail, Calendar, Camera, Edit, Save, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import BadgeCard from '../components/BadgeCard';
 
 const Profile = () => {
   const { user } = useAuth();

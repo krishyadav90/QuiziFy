@@ -1,6 +1,4 @@
-import React from 'react';
 import ProgressChart from '../components/ProgressChart';
-import BadgeCard from '../components/BadgeCard';
 import { TrendingUp, Target, Clock, Award } from 'lucide-react';
 
 const Dashboard = () => {

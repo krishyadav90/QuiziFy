@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { ChevronLeft, Clock, CheckCircle } from 'lucide-react';
-import { quizTopics, type Question } from '../data/quizQuestions';
+import { quizTopics } from '../data/quizQuestions';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   getQuizWithQuestions, 
   storeQuizAttempt, 
   getDefaultQuizzes,
-  type DatabaseQuiz
 } from '../lib/quizStorage';
 
 const Quiz = () => {

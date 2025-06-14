@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Shield, Heart, User, Moon, Sun } from 'lucide-react';
+import { Bell, Shield, Heart, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
 

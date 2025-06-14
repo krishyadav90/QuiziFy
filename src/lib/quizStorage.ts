@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { QuizTopic, Question } from '@/data/quizQuestions';
+import { Question } from '@/data/quizQuestions';
 
 export interface DatabaseQuiz {
   id: string;
