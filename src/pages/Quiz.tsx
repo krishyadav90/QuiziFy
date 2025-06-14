@@ -2,9 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { ChevronLeft, Clock, CheckCircle } from 'lucide-react';
-import { quizTopics, Question } from '../data/quizQuestions';
+import { quizTopics, type Question } from '../data/quizQuestions';
 import { useAuth } from '../contexts/AuthContext';
-import { getQuizWithQuestions, storeQuizAttempt, getDefaultQuizzes } from '../lib/quizStorage';
+import { 
+  getQuizWithQuestions, 
+  storeQuizAttempt, 
+  getDefaultQuizzes,
+  type DatabaseQuiz
+} from '../lib/quizStorage';
 
 const Quiz = () => {
   const navigate = useNavigate();
@@ -28,22 +33,49 @@ const Quiz = () => {
       if (sharedQuizId) {
         // Load shared quiz from database
         try {
+          console.log('Loading quiz with ID:', sharedQuizId);
           const quiz = await getQuizWithQuestions(sharedQuizId);
-          if (quiz && quiz.is_public) {
-            setQuizData({
-              ...quiz,
-              title: quiz.title,
-              name: quiz.title,
-              timeLimit: quiz.time_limit ? Math.floor(quiz.time_limit / 60) : 5,
-            });
-            setTimeLeft(quiz.time_limit || 300);
+          console.log('Loaded quiz data:', quiz);
+          
+          if (quiz) {
+            // For shared quizzes, we only check if it's public
+            // No need to check user authentication for shared quizzes
+            if (quiz.is_public) {
+              const formattedQuiz = {
+                ...quiz,
+                name: quiz.title,
+                timeLimit: quiz.time_limit ? Math.floor(quiz.time_limit / 60) : 5,
+                questions: quiz.questions || []
+              };
+              
+              console.log('Formatted quiz for state:', formattedQuiz);
+              setQuizData(formattedQuiz);
+              setTimeLeft(quiz.time_limit || 300);
+              return; // Exit early if quiz is loaded successfully
+            } else {
+              console.error('Quiz is not public');
+              // If user is logged in and is the owner, still allow access
+              if (user?.id && quiz.teacher_id === user.id) {
+                const formattedQuiz = {
+                  ...quiz,
+                  name: quiz.title,
+                  timeLimit: quiz.time_limit ? Math.floor(quiz.time_limit / 60) : 5,
+                  questions: quiz.questions || []
+                };
+                setQuizData(formattedQuiz);
+                setTimeLeft(quiz.time_limit || 300);
+                return;
+              }
+              console.error('You do not have permission to access this quiz');
+            }
           } else {
-            console.error('Quiz not found or inactive');
-            navigate('/');
+            console.error('Quiz not found');
           }
+          // If we reach here, there was an error or access denied
+          navigate('/not-found');
         } catch (error) {
           console.error('Error loading shared quiz:', error);
-          navigate('/');
+          navigate('/not-found');
         }
       } else {
         // Load default quiz topics from database
@@ -90,30 +122,59 @@ const Quiz = () => {
   const handleComplete = async () => {
     setIsCompleted(true);
     const finalAnswers = [...answers];
+    // Ensure we capture the answer for the current question
     if (selectedAnswer !== null) {
       finalAnswers[currentQuestion] = selectedAnswer;
     }
     
+    // Calculate score (1 point per correct answer)
     const score = finalAnswers.reduce((acc, answer, index) => {
       return acc + (answer === questions[index]?.correct ? 1 : 0);
     }, 0);
 
     // Save student attempt data if user is logged in
-    if (user) {
-      const quizId = sharedQuizId || quizData?.id || 'topic-quiz';
-      const timeSpent = sharedQuizId ? (quizData?.timeLimit ? quizData.timeLimit * 60 - timeLeft : 300 - timeLeft) : (300 - timeLeft);
-      
-      // Store attempt in database
-      await storeQuizAttempt(
-        quizId,
-        user.id,
-        score,
-        questions.length,
-        timeSpent,
-        finalAnswers
-      );
+    if (user?.id) {
+      try {
+        const quizId = sharedQuizId || quizData?.id;
+        if (!quizId) {
+          console.error('No quiz ID found for saving attempt');
+        } else {
+          const timeSpent = quizData?.time_limit 
+            ? quizData.time_limit - timeLeft 
+            : 300 - timeLeft;
+          
+          console.log('Saving quiz attempt:', {
+            quizId,
+            userId: user.id,
+            score,
+            totalQuestions: questions.length,
+            timeSpent,
+            finalAnswers
+          });
+          
+          const success = await storeQuizAttempt(
+            quizId,
+            user.id,
+            score,
+            questions.length,
+            timeSpent,
+            finalAnswers
+          );
+          
+          if (!success) {
+            console.error('Failed to save quiz attempt');
+          } else {
+            console.log('Successfully saved quiz attempt');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving quiz attempt:', error);
+      }
+    } else {
+      console.log('User not logged in, skipping attempt save');
     }
     
+    // Navigate to results page
     navigate('/results', { 
       state: { 
         score, 

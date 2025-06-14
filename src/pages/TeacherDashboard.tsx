@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Plus, Users, Clock, BarChart3, History, Share2, Image, Type, Trash2 } from 'lucide-react';
+import { createQuizInDB } from '../lib/quizStorage';
 
 interface Quiz {
   id: string;
@@ -14,10 +15,12 @@ interface Quiz {
   shareLink: string;
   attempts: QuizAttempt[];
   isActive: boolean;
+  teacher_id?: string;
+  is_public?: boolean;
 }
 
 interface Question {
-  id: string;
+  id: number;
   question: string;
   options: string[];
   correct: number;
@@ -68,19 +71,63 @@ const TeacherDashboard = () => {
     }
   };
 
-  const handleCreateQuiz = (quizData: Omit<Quiz, 'id' | 'createdAt' | 'shareLink' | 'attempts'>) => {
-    const quizId = Date.now().toString();
-    const newQuiz: Quiz = {
-      ...quizData,
-      id: quizId,
-      createdAt: new Date(),
-      shareLink: `${window.location.origin}/quiz/shared/${quizId}`,
-      attempts: []
-    };
-    const updatedQuizzes = [...quizzes, newQuiz];
-    saveQuizzes(updatedQuizzes);
-    setActiveTab('overview');
-    setCreatedQuizLink(newQuiz.shareLink);
+  const handleCreateQuiz = async (quizData: Omit<Quiz, 'id' | 'createdAt' | 'shareLink' | 'attempts'>) => {
+    try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      if (quizData.questions.length === 0) {
+        throw new Error('Please add at least one question to the quiz');
+      }
+
+      // Prepare questions for database
+      const questionsForDb = quizData.questions.map((q, index) => ({
+        id: index + 1, // Generate sequential IDs
+        question: q.question,
+        options: q.options,
+        correct: q.correct,
+        type: q.type,
+        imageUrl: q.imageUrl,
+        // Add any other required fields here
+      }));
+
+      // First save to database
+      const quizId = await createQuizInDB({
+        title: quizData.title,
+        description: quizData.description,
+        timeLimit: quizData.timeLimit || 15, // Default to 15 minutes if not specified
+        questions: questionsForDb,
+        isActive: true
+      }, user.id);
+
+      if (!quizId) {
+        throw new Error('Failed to create quiz in database');
+      }
+
+      // Then save to local state
+      const newQuiz: Quiz = {
+        ...quizData,
+        id: quizId,
+        teacher_id: user.id,
+        is_public: true,
+        createdAt: new Date(),
+        shareLink: `${window.location.origin}/quiz/shared/${quizId}`,
+        attempts: []
+      };
+      
+      const updatedQuizzes = [...quizzes, newQuiz];
+      saveQuizzes(updatedQuizzes);
+      setActiveTab('overview');
+      setCreatedQuizLink(newQuiz.shareLink);
+      
+      // Show success message with the share link
+      alert(`Quiz created successfully!\n\nShare this link with your students:\n${newQuiz.shareLink}`);
+      
+    } catch (error: any) {
+      console.error('Error creating quiz:', error);
+      alert(`Failed to create quiz: ${error.message || 'Unknown error'}`);
+    }
   };
 
   const toggleQuizStatus = (quizId: string) => {
@@ -281,9 +328,12 @@ const CreateQuizForm: React.FC<{
   const addQuestion = () => {
     if (currentQuestion.question && currentQuestion.options?.every(opt => opt.trim())) {
       setQuestions([...questions, {
-        ...currentQuestion as Question,
-        id: Date.now().toString()
-      }]);
+        ...currentQuestion,
+        id: Date.now(),
+        options: currentQuestion.options || ['', '', '', ''],
+        correct: currentQuestion.correct || 0,
+        type: currentQuestion.type || 'text'
+      } as Question]);
       setCurrentQuestion({
         question: '',
         options: ['', '', '', ''],

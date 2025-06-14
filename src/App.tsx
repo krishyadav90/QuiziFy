@@ -60,12 +60,14 @@ const App = () => (
                   <Settings />
                 </ProtectedRoute>
               } />
-              <Route path="quiz" element={
-                <ProtectedRoute allowedRoles={['teacher', 'student', 'personal']}>
-                  <Quiz />
-                </ProtectedRoute>
-              } />
-              <Route path="quiz/shared/:id" element={<Quiz />} />
+              <Route path="quiz">
+                <Route index element={
+                  <ProtectedRoute allowedRoles={['teacher', 'student', 'personal']}>
+                    <Quiz />
+                  </ProtectedRoute>
+                } />
+                <Route path="shared/:id" element={<Quiz />} />
+              </Route>
               <Route path="results" element={
                 <ProtectedRoute allowedRoles={['teacher', 'student', 'personal']}>
                   <Results />

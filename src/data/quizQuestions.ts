@@ -3,6 +3,8 @@ export interface Question {
   question: string;
   options: string[];
   correct: number;
+  type?: 'text' | 'image';
+  imageUrl?: string;
 }
 
 export interface QuizTopic {
