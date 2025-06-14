@@ -1,5 +1,4 @@
 // Progress storage utilities for maintaining user data across sessions
-
 export interface UserProgressData {
   userId: string;
   quizzes: any[];

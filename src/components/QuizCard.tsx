@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ChevronRight, Clock, Star } from 'lucide-react';
 
