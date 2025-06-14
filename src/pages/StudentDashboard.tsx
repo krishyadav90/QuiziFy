@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { BookOpen, Clock, Trophy, Share2, ExternalLink, History, Target } from 'lucide-react';
+import { BookOpen, Share2, ExternalLink, History, Target } from 'lucide-react';
 
 interface StudentQuizAttempt {
   id: string;

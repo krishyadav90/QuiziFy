@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {

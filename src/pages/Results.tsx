@@ -1,14 +1,11 @@
-import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Trophy, Star, RotateCcw, Home } from 'lucide-react';
 import ProgressChart from '../components/ProgressChart';
-import { useAuth } from '../contexts/AuthContext';
 
 const Results = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { score, total, answers, questions, quizTitle } = location.state || {};
+  const { score, total, answers, questions } = location.state || {};
 
 
   if (!score && score !== 0) {

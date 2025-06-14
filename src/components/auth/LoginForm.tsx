@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
 import { User, Lock, Mail } from 'lucide-react';
 
 interface LoginFormProps {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BarChart, Settings, Users, BookOpen, LogOut } from 'lucide-react';
+import { Home, User, Settings, Users, BookOpen, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navigation = () => {
