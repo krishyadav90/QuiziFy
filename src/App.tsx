@@ -35,6 +35,11 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<Layout />}>
               <Route index element={<Index />} />
+              <Route path="dashboard" element={
+                <ProtectedRoute allowedRoles={['teacher', 'student', 'personal']}>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
               <Route path="teacher-dashboard" element={
                 <ProtectedRoute allowedRoles={['teacher']}>
                   <TeacherDashboard />
