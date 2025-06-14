@@ -46,15 +46,24 @@ export const createQuizInDB = async (
   userId: string
 ): Promise<string | null> => {
   try {
+    console.log('Creating quiz with data:', {
+      ...quizData,
+      questions: quizData.questions.map(q => ({
+        ...q,
+        options: q.options // Just show the options for debugging
+      }))
+    });
+
     // Insert quiz
     const { data: quiz, error: quizError } = await supabase
       .from('quizzes')
       .insert({
         title: quizData.title,
         description: quizData.description,
-        time_limit: quizData.timeLimit,
+        time_limit: quizData.timeLimit * 60, // Convert minutes to seconds
         is_public: quizData.isActive ?? true,
         teacher_id: userId,
+        created_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -64,31 +73,157 @@ export const createQuizInDB = async (
       return null;
     }
 
-    // Insert questions
-    const questionsToInsert = quizData.questions.map((question, index) => ({
-      quiz_id: quiz.id,
-      question_text: question.question,
-      options: question.options,
-      correct_answer: question.correct.toString(),
-      order_index: index,
-      question_type: 'text',
-      points: 1,
-    }));
+    if (!quiz) {
+      console.error('No quiz data returned after creation');
+      return null;
+    }
 
-    const { error: questionsError } = await supabase
-      .from('questions')
-      .insert(questionsToInsert);
+    console.log('Quiz created with ID:', quiz.id);
+    console.log('Quiz data:', {
+      id: quiz.id,
+      title: quizData.title,
+      description: quizData.description,
+      time_limit: quizData.timeLimit * 60,
+      is_public: quizData.isActive ?? true,
+      teacher_id: userId
+    });
 
-    if (questionsError) {
-      console.error('Error creating questions:', questionsError);
-      // Cleanup - delete the quiz if questions failed
+    // Prepare questions for insertion
+    console.log('Preparing to insert questions...');
+    const questionsToInsert = [];
+    
+    for (let i = 0; i < quizData.questions.length; i++) {
+      const question = quizData.questions[i];
+      try {
+        console.log('Processing question:', question);
+        
+        // Ensure options is an array of strings
+        const options = Array.isArray(question.options) 
+          ? question.options.map(opt => String(opt).trim()).filter(opt => opt.length > 0)
+          : [];
+        
+        console.log('Processed options:', options);
+        
+        if (options.length === 0) {
+          console.warn(`Question ${i + 1} has no valid options, skipping`);
+          continue;
+        }
+        
+        // Ensure correct answer is within bounds
+        const correct = typeof question.correct === 'number' 
+          ? Math.max(0, Math.min(question.correct, options.length - 1)) 
+          : 0;
+
+        const questionData = {
+          quiz_id: quiz.id,
+          question_text: String(question.question || `Question ${i + 1}`).trim(),
+          options: JSON.stringify(options), // Convert array to JSON string
+          correct_answer: String(correct).trim(),
+          order_index: i,
+          question_type: 'multiple_choice', // Must match the check constraint in the database
+          points: 1,
+          created_at: new Date().toISOString()
+        };
+
+        console.log('Prepared question data:', questionData);
+
+        // Validate the question data
+        if (!questionData.question_text) {
+          console.warn(`Question ${i + 1} has no text, skipping`);
+          continue;
+        }
+
+        if (questionData.options.length < 2) {
+          console.warn(`Question ${i + 1} needs at least 2 options, skipping`);
+          continue;
+        }
+
+        questionsToInsert.push(questionData);
+      } catch (error) {
+        console.error(`Error processing question ${i + 1}:`, error);
+      }
+    }
+    
+    console.log('Questions to be inserted:', JSON.stringify(questionsToInsert, null, 2));
+
+    if (questionsToInsert.length === 0) {
+      console.error('No valid questions to insert');
       await supabase.from('quizzes').delete().eq('id', quiz.id);
       return null;
     }
 
-    return quiz.id;
+    console.log('Inserting questions...');
+
+    try {
+      // Insert questions one by one to identify any problematic ones
+      const insertedQuestions = [];
+      
+      for (const question of questionsToInsert) {
+        try {
+          console.log('Inserting question:', question.question_text);
+          console.log('Question data to insert:', JSON.stringify(question, null, 2));
+          
+          // Validate required fields
+          const requiredFields = ['quiz_id', 'question_text', 'options', 'correct_answer', 'order_index', 'question_type', 'points', 'created_at'];
+          const missingFields = requiredFields.filter(field => question[field] === undefined || question[field] === null);
+          
+          if (missingFields.length > 0) {
+            throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+          }
+          
+          const { data, error } = await supabase
+            .from('questions')
+            .insert({
+              quiz_id: question.quiz_id,
+              question_text: question.question_text,
+              options: question.options,
+              correct_answer: question.correct_answer,
+              order_index: question.order_index,
+              question_type: 'multiple_choice', // Ensure it matches the check constraint
+              points: question.points,
+              created_at: question.created_at
+            })
+            .select()
+            .single();
+            
+          if (error) {
+            console.error('Error inserting question:', {
+              question: question.question_text,
+              error: {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint
+              },
+              questionData: question
+            });
+            throw error;
+          }
+          
+          console.log('Successfully inserted question:', data);
+          insertedQuestions.push(data);
+        } catch (error) {
+          console.error('Failed to insert question. Question data:', JSON.stringify(question, null, 2));
+          console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            ...(error.response?.data && { responseData: error.response.data }),
+            ...(error.response?.status && { statusCode: error.response.status })
+          });
+          throw error; // Re-throw to trigger the cleanup
+        }
+      }
+      
+      console.log('Successfully inserted questions:', insertedQuestions);
+      console.log('Successfully created quiz with questions');
+      return quiz.id;
+    } catch (error) {
+      console.error('Error in questions transaction:', error);
+      await supabase.from('quizzes').delete().eq('id', quiz.id);
+      return null;
+    }
   } catch (error) {
-    console.error('Error creating quiz:', error);
+    console.error('Error in createQuizInDB:', error);
     return null;
   }
 };
@@ -130,7 +265,7 @@ export const getQuizWithQuestions = async (quizId: string) => {
     }
 
     // Get questions
-    const { data: questions, error: questionsError } = await supabase
+    const { data: questionsData, error: questionsError } = await supabase
       .from('questions')
       .select('*')
       .eq('quiz_id', quizId)
@@ -141,16 +276,41 @@ export const getQuizWithQuestions = async (quizId: string) => {
       return null;
     }
 
-    return {
-      ...quiz,
-      questions: questions.map(q => ({
+    // Transform the database format to our app's format
+    const questions = questionsData.map(q => {
+      // Parse options JSON string back to array
+      let options = [];
+      try {
+        options = typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []);
+      } catch (e) {
+        console.error('Error parsing question options:', e);
+        options = [];
+      }
+
+      return {
         id: q.id,
         question: q.question_text,
-        options: q.options as string[],
-        correct: parseInt(q.correct_answer),
-        type: q.question_type,
-      }))
+        options: options,
+        correct: parseInt(q.correct_answer, 10) || 0,
+        type: q.question_type || 'multiple_choice',
+        points: q.points || 1
+      };
+    });
+
+    // Ensure all required fields are present in the quiz object
+    const formattedQuiz = {
+      id: quiz.id,
+      title: quiz.title,
+      description: quiz.description || '',
+      time_limit: quiz.time_limit || 300, // Default to 5 minutes if not set
+      is_public: quiz.is_public || false,
+      teacher_id: quiz.teacher_id,
+      created_at: quiz.created_at,
+      questions: questions
     };
+
+    console.log('Formatted quiz data:', formattedQuiz);
+    return formattedQuiz;
   } catch (error) {
     console.error('Error fetching quiz with questions:', error);
     return null;
@@ -267,6 +427,7 @@ export const getDefaultQuizzes = async (): Promise<DatabaseQuiz[]> => {
 
     return data || [];
   } catch (error) {
+    
     console.error('Error fetching default quizzes:', error);
     return [];
   }
