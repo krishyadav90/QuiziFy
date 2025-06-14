@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ProgressChart from '../components/ProgressChart';
 import BadgeCard from '../components/BadgeCard';

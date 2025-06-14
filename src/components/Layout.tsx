@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,12 +20,6 @@ const Layout = () => {
       <main className="pt-16">
         <Outlet />
       </main>
-      {/* Floating animation background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation"></div>
-        <div className="absolute top-3/4 right-1/4 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation" style={{ animationDelay: '2s' }}></div>
-      </div>
     </div>
   );
 };

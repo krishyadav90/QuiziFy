@@ -109,23 +109,23 @@ const Settings = () => {
 
             {section.title === 'About' ? (
               <div className="space-y-4">
-                <div className="p-4 bg-purple-50 rounded-lg">
-                  <h4 className="font-semibold text-purple-900 mb-2">About Quiz App</h4>
-                  <p className="text-purple-700 text-sm">
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <h4 className="font-semibold text-purple-900 dark:text-purple-200 mb-2">About Quiz App</h4>
+                  <p className="text-purple-700 dark:text-purple-300 text-sm">
                     A modern quiz platform designed to make learning fun and interactive. 
                     Create, share, and take quizzes with ease.
                   </p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Created by Krish Yadav</h4>
-                  <p className="text-gray-700 text-sm">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Created by Krish Yadav</h4>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm">
                     Passionate developer focused on creating engaging educational experiences. 
                     Building tools that make learning accessible and enjoyable for everyone.
                   </p>
                 </div>
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Privacy Notes</h4>
-                  <p className="text-blue-700 text-sm">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Privacy Notes</h4>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
                     We respect your privacy. All quiz data is stored locally on your device. 
                     We only collect anonymous usage statistics to improve the app experience. 
                     Your personal information is never shared with third parties.
