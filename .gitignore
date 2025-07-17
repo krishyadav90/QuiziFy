@@ -28,3 +28,7 @@ config.json
 config.toml
 package-lock.json
 node_modules
+config.toml
+.temp
+project_structure.txt
+
